@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/generative-ai-go/genai"
@@ -47,6 +46,7 @@ func connectDB() *sql.DB {
 }
 
 func uploadHandler(c echo.Context) error {
+	fmt.Print("hi")
 	// Read form data including file
 	_, err := c.MultipartForm()
 	if err != nil {
@@ -96,55 +96,65 @@ func uploadHandler(c echo.Context) error {
 
 	prompt := []genai.Part{
 		genai.ImageData("jpeg", imgData),
-		genai.Text("Provide detailed specifications of flowers in the image provided. Create a JSON format containing attributes like color, size, scientific name, category, other names, habitat, distribution, etymology, symbolism, uses, and interesting facts. Make sure the categories are understandable to the common user, and provide more than 20 categories of specifications."),
+		genai.Text("Provide detailed specifications of flowers in the image provided. Create a JSON format containing attributes like color, size, scientific name, name, other names, habitat, distribution, etymology, symbolism, uses, and interesting facts. Make sure the categories are understandable to the common user, and provide more than 20 categories of specifications. and if the provided image is not flower then return the json response having one key as message and value as please provide flower image"),
 	}
 	res, err := model.GenerateContent(ctx, prompt...)
 	if err != nil {
 		return err
 	}
 
-	var jsonResponse map[string]interface{}
-	jsonData, err := json.Marshal(res.Candidates[0].Content.Parts[0])
+	resp, err := printResponse(res)
 	if err != nil {
-		fmt.Println("Error marshaling JSON:", err)
-		// Handle the error accordingly
-	} else {
-		jsonString := string(jsonData)
-		jsonString = strings.TrimSpace(strings.ReplaceAll(jsonString, "\n", ""))
-		fmt.Println("JSON string:", jsonString)
-
-		err = json.Unmarshal([]byte(jsonString), &jsonResponse)
-		if err != nil {
-			fmt.Println("Error unmarshaling JSON:", err)
-			// Handle the error accordingly
-		}
-
-		// Use jsonString as needed
+		fmt.Println(err)
 	}
-	if jsonData == nil {
-		return c.String(http.StatusInternalServerError, "Failed to generate content")
-	}
-	return c.JSON(http.StatusOK, jsonResponse)
+	return c.JSON(http.StatusOK, resp)
 }
 
-func printResponse(resp *genai.GenerateContentResponse) []byte {
+func printResponse(resp *genai.GenerateContentResponse) (map[string]interface{}, error) {
+	finalContent := make(map[string]interface{})
+
 	for _, cand := range resp.Candidates {
 		if cand.Content != nil {
-			test := cand.Content.Parts
+			for _, part := range cand.Content.Parts {
+				// Assume extractPartContent returns a map of attributes
+				partContent, err := extractPartContent(part)
+				if err != nil {
+					return nil, err
+				}
 
-			jsonData, err := json.Marshal(test)
-			if err != nil {
-				fmt.Println("Failed to marshal JSON:", err)
-				// TODO handle error return
-				return nil
+				fmt.Println(partContent)
+
+				for key, value := range partContent {
+					// Aggregate values in finalContent map.
+					finalContent[key] = value
+				}
 			}
-
-			// Print the JSON data
-			return jsonData
-
 		}
 	}
-	return nil
+
+	return finalContent, nil
+}
+
+func extractPartContent(part genai.Part) (map[string]interface{}, error) {
+	// Marshal the part into JSON
+	partJSON, err := json.Marshal(part)
+	if err != nil {
+		return nil, err
+	}
+
+	var jsonString string
+	err = json.Unmarshal([]byte(partJSON), &jsonString)
+	if err != nil {
+		fmt.Println("Error unmarshling to string", err)
+	}
+
+	var resultMap map[string]interface{}
+	err = json.Unmarshal([]byte(jsonString), &resultMap)
+	if err != nil {
+		fmt.Println("Error unmarshling to map", err)
+	}
+
+	return resultMap, nil
 }
 
 func main() {
@@ -155,26 +165,6 @@ func main() {
 	e.Use(echo.WrapMiddleware(cors.Default().Handler))
 
 	e.GET("/", func(c echo.Context) error {
-		ctx := context.Background()
-		// Access your API key as an environment variable (see "Set up your API key" above)
-		client, err := genai.NewClient(ctx, option.WithAPIKey("AIzaSyDE4YvNRYwmkQ4SBrJc4gAzOLXr7Xd6n6Y"))
-
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer client.Close()
-		model := client.GenerativeModel("gemini-pro-vision")
-		imgData1, _ := os.ReadFile("./cookie.jpg")
-		prompt := []genai.Part{
-			genai.ImageData("jpeg", imgData1),
-			genai.Text("Describe about the image"),
-		}
-		res, err := model.GenerateContent(ctx, prompt...)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-		printResponse(res)
 		return c.String(http.StatusOK, "Hello, World!")
 	})
 
