@@ -22,11 +22,11 @@ var db *sql.DB
 func connectDB() *sql.DB {
 	// Capture connection properties.
 	cfg := mysql.Config{
-		User:                 "root",
-		Passwd:               "root",
+		User:                 "your_username",
+		Passwd:               "your_password",
 		Net:                  "tcp",
 		Addr:                 "localhost:3306",
-		DBName:               "chatatm",
+		DBName:               "your_db_name",
 		AllowNativePasswords: true,
 	}
 	// Get a database handle.
@@ -82,7 +82,7 @@ func uploadHandler(c echo.Context) error {
 
 	// Use the path of the uploaded image to generate content
 	ctx := context.Background()
-	client, err := genai.NewClient(ctx, option.WithAPIKey("AIzaSyDE4YvNRYwmkQ4SBrJc4gAzOLXr7Xd6n6Y"))
+	client, err := genai.NewClient(ctx, option.WithAPIKey("Your Google API"))
 	if err != nil {
 		return err
 	}
