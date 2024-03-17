@@ -96,7 +96,7 @@ func uploadHandler(c echo.Context) error {
 
 	prompt := []genai.Part{
 		genai.ImageData("jpeg", imgData),
-		genai.Text("Provide detailed specifications of flowers in the image provided. Create a JSON format containing attributes like color, size, scientific name, name, other names, habitat, distribution, etymology, symbolism, uses, and interesting facts. Make sure the categories are understandable to the common user, and provide more than 20 categories of specifications. and if the provided image is not flower then return the json response having one key as message and value as please provide flower image"),
+		genai.Text("Specifications of Flower in the Image: If the provided image contains a flower, the response will include detailed specifications of the flower, including its attributes such as color, size, scientific name, name, other names, habitat, distribution, etymology, symbolism, uses, and interesting facts. These categories are designed to be understandable to the common user. If the provided image doesn't contain a flower, the response will consist of a single key-value pair: {message: Please provide an image of a flower.} Ensure that the response doesn't contain an empty response in any case and follows a single JSON format without embedding JSON within JSON."),
 	}
 	res, err := model.GenerateContent(ctx, prompt...)
 	if err != nil {
