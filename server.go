@@ -46,7 +46,6 @@ func connectDB() *sql.DB {
 }
 
 func uploadHandler(c echo.Context) error {
-	fmt.Print("hi")
 	// Read form data including file
 	_, err := c.MultipartForm()
 	if err != nil {
@@ -165,6 +164,7 @@ func main() {
 	e.Use(echo.WrapMiddleware(cors.Default().Handler))
 
 	e.GET("/", func(c echo.Context) error {
+		print("hi")
 		return c.String(http.StatusOK, "Hello, World!")
 	})
 
@@ -208,6 +208,7 @@ func main() {
 		if err := c.Bind(&data); err != nil {
 			return err
 		}
+		print(data["username"],data["password"])
 		rows, err := db.Query("SELECT username, password FROM user WHERE username = ? AND password = ?", data["username"], data["password"])
 		if err != nil {
 			panic(err.Error())
@@ -222,6 +223,7 @@ func main() {
 			if err := rows.Scan(&username, &password); err != nil {
 				panic(err.Error())
 			}
+			// print(username, password)
 			rowCount++
 			fmt.Printf("%s  %s\n", username, password)
 			print("Login Successful :)")
